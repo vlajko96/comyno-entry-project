@@ -1,0 +1,15 @@
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
+rm -rf hashserve.sock
+
+# Fix "unable to resolve host" issue
+echo "127.0.0.1   localhost ${COMYNO_ENV_CONTAINER}" | sudo tee -a /etc/hosts > /dev/null 2>&1
+echo "::1         localhost ${COMYNO_ENV_CONTAINER}" | sudo tee -a /etc/hosts > /dev/null 2>&1
+
+# Start postgresql database
+sudo service postgresql start
+
+# Start qpid broker
+sudo qpidd &

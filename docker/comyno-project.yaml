@@ -1,0 +1,23 @@
+version: "3.6"
+
+services:
+  comyno_env:
+    image: "${COMYNO_ENV_IMAGE}"
+    hostname: ${COMYNO_ENV_CONTAINER}
+    network_mode: "host"
+    working_dir: ${PROJECT_PATH_DOCKER}
+    container_name: ${COMYNO_ENV_CONTAINER}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        COMYNO_ENV_IMAGE_SCRIPTS_PATH: ${COMYNO_ENV_IMAGE_SCRIPTS_PATH}
+        COMYNO_ENV_CONTAINER: ${COMYNO_ENV_CONTAINER}
+    user: 1000:1000
+    volumes:
+      - ${PROJECT_PATH}:${PROJECT_PATH_DOCKER}:rw
+    environment:
+      - SHELL=/bin/bash
+      - COMYNO_ENV_IMAGE_SCRIPTS_PATH=${COMYNO_ENV_IMAGE_SCRIPTS_PATH}
+      - COMYNO_ENV_CONTAINER=${COMYNO_ENV_CONTAINER}
+    privileged: true
