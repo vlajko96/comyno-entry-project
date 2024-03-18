@@ -5,7 +5,7 @@ qpidMessaging::QPIDMessaging qpidMessagingClient{};
 std::unordered_map<std::string, std::string> topicReply;
 
 void receiveCallback(std::string message, std::string topic, std::string replyAddress) {
-	std::cout << "Message received: " << message << " on topic:" << topic << "with reply address: " << replyAddress << std::endl;
+	std::cout << "Message received: " << message << " on topic:" << topic << " with reply address: " << replyAddress << std::endl;
 }
 
 void receiveAndReplyCallback(std::string message, std::string topic, std::string replyAddress) {
@@ -15,7 +15,7 @@ void receiveAndReplyCallback(std::string message, std::string topic, std::string
             std::cout << "Sending invalid message to topic: " << replyAddress << std::endl;
             qpidMessagingClient.qpidSendMessage(replyAddress, INVALID_MESSAGE);
         } else {
-            std::cout << "Replying with message: " << topicReply[topic] << "to topic " << replyAddress << std::endl;
+            std::cout << "Replying with message: " << topicReply[topic] << " on topic: " << replyAddress << std::endl;
             qpidMessagingClient.qpidSendMessage(replyAddress, message);
         }
     } else {

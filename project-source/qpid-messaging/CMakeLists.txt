@@ -7,8 +7,9 @@ set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -shared")
 
 # Include directories
 include_directories(
+    ../log
     inc
-    qpid-common/inc
+    qpid-common
     qpid-sender/inc
     qpid-receiver/inc
 )

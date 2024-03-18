@@ -15,6 +15,7 @@
 #include <qpid/messaging/Session.h>
 #include <qpid/messaging/Address.h>
 #include <qpid/messaging/Duration.h>
+#include <CMLog.h>
 
 #define INVALID_MESSAGE "INVALID MESSAGE"
 

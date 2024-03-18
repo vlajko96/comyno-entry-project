@@ -18,12 +18,12 @@ QPIDStatus QPIDSender::sendMessage(std::string topic, std::string message, std::
         request.setContent(message);
         mReplyAddress = qpid::messaging::Address(replyAddress);
         request.setReplyTo(mReplyAddress);
-        std::cout << "Sending message: " << request.getContent() << std::endl;
+        DEBUG_LOG("[ %s ] Sending message: %s!", __func__, request.getContent().c_str());
         mSender.send(request);
 
         mConnection.close();
     } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
+        WARNING_LOG("[ %s ] Exception: %s!", __func__, e.what());
         mConnection.close();
         ret = QPIDStatus::QPID_ERROR;
     }

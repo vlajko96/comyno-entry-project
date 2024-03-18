@@ -7,10 +7,11 @@ set(EXECUTABLE_NAME ${TEST_EXECUTABLE_NAME})
 set (QPID_INCLUDES "../qpid-messaging")
 
 include_directories(${QPID_INCLUDES}/inc)
-include_directories(${QPID_INCLUDES}/qpid-common/inc)
+include_directories(${QPID_INCLUDES}/qpid-common)
 include_directories(${QPID_INCLUDES}/qpid-sender/inc)
 include_directories(${QPID_INCLUDES}/qpid-receiver/inc)
 include_directories(inc)
+include_directories(../log)
 
 # Append test source files from different directories to TEST_SOURCES
 file(GLOB TEST_SOURCES "src/*.cpp")

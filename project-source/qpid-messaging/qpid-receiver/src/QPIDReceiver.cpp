@@ -23,13 +23,13 @@ void QPIDReceiver::waitForMessages() {
         while (mReceivingActive) { // Loop to keep listening for messages
             qpid::messaging::Message message = mReceiver.fetch();
             mMutex.lock();
-            std::cout << "Received message: " << message.getContent() << std::endl;
+            DEBUG_LOG("[ %s ] Received message: %s!", __func__, message.getContent().c_str());
             mReceiveCallback(message.getContent(), mTopic, message.getReplyTo().getName());
             mMutex.unlock();
             mSession.acknowledge();
         }
     } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
+        WARNING_LOG("[ %s ] Exception: %s!", __func__, e.what());
         if (mConnection.isOpen())
             mConnection.close();
     }
@@ -47,9 +47,10 @@ QPIDStatus QPIDReceiver::receiveMessages(std::string topic, qpidReceiveCallback 
 
         mReceiveCallback = callback;
         mReceivingActive = true;
+        DEBUG_LOG("[ %s ] Starting receiver thread on topic: %s!", __func__, topic.c_str());
         mMessageReceiverThreadFunction = std::thread(&QPIDReceiver::waitForMessages, this);
     } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
+        WARNING_LOG("[ %s ] Exception: %s!", __func__, e.what());
         mConnection.close();
         ret = QPIDStatus::QPID_ERROR;
     }
@@ -70,7 +71,7 @@ QPIDStatus QPIDReceiver::receiveStop() {
             ret = QPIDStatus::QPID_ALREADY;
         }
     } catch (const std::exception& e) {
-        std::cerr << "Exception: " << e.what() << std::endl;
+        WARNING_LOG("[ %s ] Exception: %s!", __func__, e.what());
         ret = QPIDStatus::QPID_ERROR;
     }
 
