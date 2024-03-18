@@ -17,10 +17,14 @@ help:
 build: ## Build image
 	docker-compose --file docker/comyno-project.yaml build
 
-bash: ## Get into the container console [p=(path to project folder)]
+start: ## Get into the container console [p=(path to project folder)]
 	docker-compose --file docker/comyno-project.yaml  \
 		run --rm \
 		${COMYNO_ENV_CONTAINER} ${COMYNO_ENV_IMAGE_SCRIPTS_PATH}/enter-bash.sh
+
+attach:
+	@$(eval CONTAINER_ID=$(shell docker ps -q -f name=${COMYNO_ENV_CONTAINER}))
+	docker exec -it ${CONTAINER_ID} /bin/bash
 
 stop:
 	docker-compose --file docker/comyno-project.yaml stop
