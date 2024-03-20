@@ -16,8 +16,12 @@ services:
     user: 1000:1000
     volumes:
       - ${PROJECT_PATH}:${PROJECT_PATH_DOCKER}:rw
+      - pgdata:/var/lib/postgresql/10/main/
     environment:
       - SHELL=/bin/bash
       - COMYNO_ENV_IMAGE_SCRIPTS_PATH=${COMYNO_ENV_IMAGE_SCRIPTS_PATH}
       - COMYNO_ENV_CONTAINER=${COMYNO_ENV_CONTAINER}
     privileged: true
+
+volumes:
+  pgdata:
