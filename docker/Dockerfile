@@ -32,7 +32,7 @@ RUN apt-get update && \
     ruby-full \
     libboost-all-dev \
     uuid-dev \
-    libpqxx-dev \
+    libpq-dev \
     python \
     python-dev \
     python-pip
@@ -56,7 +56,7 @@ RUN echo "%sudo ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 # Fix warning "user not in sudoers file"
 RUN echo "comyno ALL=(ALL:ALL) ALL" > /etc/sudoers
 
-RUN pip install qpid-python
+COPY /scripts $COMYNO_ENV_IMAGE_SCRIPTS_PATH
 
 # Install of the cmake version 3.24.0
 ARG CMAKE_VERSION=3.24.0
@@ -64,23 +64,37 @@ RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cm
     sh cmake.sh --prefix=/usr/local/ --exclude-subdir; \
     rm -rf cmake.sh;
 
+# Expose the port for Postgresql
+EXPOSE 5432
+
+# Run the rest of the commands as the ``postgres`` user created during the installation of PostgreSQL
+USER postgres
+
+# Create a PostgreSQL role named ``comyno`` with ``comyno`` as the password and then create a database `comynoDB` owned by the ``comyno`` role.
+RUN /etc/init.d/postgresql start && \
+    psql --command "CREATE USER comyno WITH SUPERUSER PASSWORD 'comyno';" && \
+    createdb -O comyno comynoDB && \
+    export PGPASSWORD='comyno' && \
+    # Create tables and indexes
+    psql -U comyno -d comynoDB -h localhost -f $COMYNO_ENV_IMAGE_SCRIPTS_PATH/init.sql
+
+USER root
+
 # Install of qpid
+RUN pip install qpid-python
 RUN wget https://dlcdn.apache.org/qpid/cpp/1.39.0/qpid-cpp-1.39.0.tar.gz
-
 RUN tar xvzf qpid-cpp-1.39.0.tar.gz
-RUN cd qpid-cpp-1.39.0                 &&  \
-    mkdir bld                          &&  \
-    cd bld                             &&  \
-    cmake ..                           &&  \
-    make install                       &&  \
-    rm -rf /qpid-cpp-1.39.0.tar.gz
+RUN cd qpid-cpp-1.39.0 && \
+    mkdir bld && \
+    cd bld && \
+    cmake .. && \
+    make install && \
+    cd / && \
+    rm -rf /qpid-cpp-1.39.0.tar.gz && \
+    rm -rf /qpid-cpp-1.39.0
 
-# Set the environment variable for runtime linker
-ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-
-# Set environment variables for compiler include paths
-ENV C_INCLUDE_PATH=/usr/local/include:$C_INCLUDE_PATH
-ENV CPLUS_INCLUDE_PATH=/usr/local/include:$CPLUS_INCLUDE_PATH
+# Expose the port for Qpid broker
+EXPOSE 5672
 
 # Install GCC-9 and G++-9
 RUN apt-get install -y software-properties-common
@@ -96,23 +110,24 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 50 && \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 100 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 100
 
-COPY /scripts $COMYNO_ENV_IMAGE_SCRIPTS_PATH
+# Build and install libpqxx
+RUN git clone https://github.com/jtv/libpqxx.git
 
-# Expose the port for Qpid broker
-EXPOSE 5672
+RUN cd libpqxx && \
+    mkdir bld && \
+    cd bld && \
+    cmake .. -DSKIP_BUILD_TEST=on -DBUILD_SHARED_LIBS=on && \
+    cd .. && \
+    cmake --build bld && \
+    cmake --install bld && \
+    cd / && \
+    rm -rf /libpqxx
 
-# Run the rest of the commands as the ``postgres`` user created during the installation of PostgreSQL
-USER postgres
+# Set the environment variable for runtime linker
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
-# Create a PostgreSQL role named ``comyno`` with ``comyno`` as the password and then create a database `comynoDB` owned by the ``comyno`` role.
-RUN /etc/init.d/postgresql start &&\
-    psql --command "CREATE USER comyno WITH SUPERUSER PASSWORD 'comyno';" &&\
-    createdb -O comyno comynoDB
-
-USER root
-
-# Expose the port for Postgresql
-EXPOSE 5432
+# Set environment variables for compiler include paths
+ENV CPLUS_INCLUDE_PATH=/usr/local/include:$CPLUS_INCLUDE_PATH
 
 # Adjust PostgreSQL configuration so that remote connections to the database are possible.
 RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/10/main/pg_hba.conf

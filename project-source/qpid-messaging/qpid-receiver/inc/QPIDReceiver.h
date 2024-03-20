@@ -7,7 +7,7 @@ namespace qpidMessaging {
 
 class QPIDReceiver {
     void waitForMessages();
-    QPIDStatus receiveMessages(std::string topic, qpidReceiveCallback callback);
+    QPIDStatus receiveMessages(std::string exchange, qpidReceiveCallback callback);
     QPIDStatus receiveStop();
     friend class QPIDMessaging;
 
@@ -15,7 +15,7 @@ class QPIDReceiver {
     qpid::messaging::Session mSession;
     qpid::messaging::Receiver mReceiver;
     qpid::messaging::Address mReplyAddress;
-    std::string mTopic;
+    std::string mExchange;
     std::thread mMessageReceiverThreadFunction;
     qpidReceiveCallback mReceiveCallback;
     bool mReceivingActive;

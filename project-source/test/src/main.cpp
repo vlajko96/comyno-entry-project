@@ -1,10 +1,12 @@
 #include "test_utils.hpp"
 
 extern t_module_t cm_qpid_module;
+extern t_module_t cm_pgclient_module;
 
 t_module_t *test_modules[] =
 {
     &cm_qpid_module,
+    &cm_pgclient_module,
 };
 
 void dump_modules(void)

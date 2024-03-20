@@ -13,30 +13,30 @@ QPIDMessaging::~QPIDMessaging() {
     activeReceivers.clear();
 }
 
-QPIDStatus QPIDMessaging::qpidSendMessage(std::string topic, std::string message, std::string replyAddress) {
+QPIDStatus QPIDMessaging::qpidSendMessage(std::string message, std::string exchange, std::string replyAddress) {
     QPIDSender qpidSender(mBroker);
-    INFO_LOG("[ %s ] Sending message: %s, on topic: %s, with reply address: %s!", __func__, message.c_str(), topic.c_str(), replyAddress.c_str());
-    return qpidSender.sendMessage(topic, message, replyAddress);
+    INFO_LOG("[ %s ] Sending message: %s, on exchange: %s, with reply address: %s!", __func__, message.c_str(), exchange.c_str(), replyAddress.c_str());
+    return qpidSender.sendMessage(exchange, message, replyAddress);
 }
 
-QPIDStatus QPIDMessaging::qpidSendInvalidMessage(std::string topic) {
+QPIDStatus QPIDMessaging::qpidSendInvalidMessage(std::string exchange) {
     QPIDSender qpidSender(mBroker);
-    INFO_LOG("[ %s ] Sending invalid message on topic: %s!", __func__, topic.c_str());
-    return qpidSender.sendMessage(topic, INVALID_MESSAGE);
+    INFO_LOG("[ %s ] Sending invalid message on exchange: %s!", __func__, exchange.c_str());
+    return qpidSender.sendMessage(exchange, INVALID_MESSAGE);
 }
 
-QPIDStatus QPIDMessaging::qpidReceiveMessages(std::string topic, qpidReceiveCallback callback) {
+QPIDStatus QPIDMessaging::qpidReceiveMessages(std::string exchange, qpidReceiveCallback callback) {
     QPIDStatus ret = QPIDStatus::QPID_ERROR;
     if (nullptr != callback) {
-        if (activeReceivers.find(topic) != activeReceivers.end()) {
-            INFO_LOG("[ %s ] Already receiving on topic: %s!", __func__, topic.c_str());
+        if (activeReceivers.find(exchange) != activeReceivers.end()) {
+            INFO_LOG("[ %s ] Already receiving on exchange: %s!", __func__, exchange.c_str());
             ret = QPIDStatus::QPID_ALREADY;
         } else {
-            INFO_LOG("[ %s ] Starting receiver on topic: %s!", __func__, topic.c_str());
+            INFO_LOG("[ %s ] Starting receiver on exchange: %s!", __func__, exchange.c_str());
             std::shared_ptr<QPIDReceiver> qpidReceiver = std::make_shared<QPIDReceiver>(mBroker);
-            ret = qpidReceiver->receiveMessages(topic, callback);
+            ret = qpidReceiver->receiveMessages(exchange, callback);
             if (ret == QPIDStatus::QPID_SUCCESS) {
-                activeReceivers.emplace(topic, qpidReceiver);
+                activeReceivers.emplace(exchange, qpidReceiver);
             }
         }
     }
@@ -44,15 +44,15 @@ QPIDStatus QPIDMessaging::qpidReceiveMessages(std::string topic, qpidReceiveCall
     return ret;
 }
 
-QPIDStatus QPIDMessaging::qpidReceiveStop(std::string topic) {
+QPIDStatus QPIDMessaging::qpidReceiveStop(std::string exchange) {
     QPIDStatus ret = QPIDStatus::QPID_ERROR;
-    if (activeReceivers.find(topic) == activeReceivers.end()) {
-        INFO_LOG("[ %s ] Receiver on topic %s doesn't exist!", __func__, topic.c_str());
-        ret = QPIDStatus::QPID_ALREADY;
+    if (activeReceivers.find(exchange) == activeReceivers.end()) {
+        INFO_LOG("[ %s ] Receiver on exchange %s doesn't exist!", __func__, exchange.c_str());
+        ret = QPIDStatus::QPID_INVALID_PARAM;
     } else {
-        INFO_LOG("[ %s ] Stopping receiver on topic: %s!", __func__, topic.c_str());
-        ret = activeReceivers[topic]->receiveStop();
-        activeReceivers.erase(topic);
+        INFO_LOG("[ %s ] Stopping receiver on exchange: %s!", __func__, exchange.c_str());
+        ret = activeReceivers[exchange]->receiveStop();
+        activeReceivers.erase(exchange);
     }
 
     return ret;

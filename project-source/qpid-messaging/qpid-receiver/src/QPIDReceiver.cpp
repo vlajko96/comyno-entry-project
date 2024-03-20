@@ -24,7 +24,7 @@ void QPIDReceiver::waitForMessages() {
             qpid::messaging::Message message = mReceiver.fetch();
             mMutex.lock();
             DEBUG_LOG("[ %s ] Received message: %s!", __func__, message.getContent().c_str());
-            mReceiveCallback(message.getContent(), mTopic, message.getReplyTo().getName());
+            mReceiveCallback(message.getContent(), mExchange, message.getReplyTo().getName());
             mMutex.unlock();
             mSession.acknowledge();
         }
@@ -36,18 +36,18 @@ void QPIDReceiver::waitForMessages() {
 }
 
 
-QPIDStatus QPIDReceiver::receiveMessages(std::string topic, qpidReceiveCallback callback) {
+QPIDStatus QPIDReceiver::receiveMessages(std::string exchange, qpidReceiveCallback callback) {
     QPIDStatus ret = QPIDStatus::QPID_SUCCESS;
 
     try {
         mConnection.open();
         mSession = mConnection.createSession();
-        mTopic = topic;
-        mReceiver = mSession.createReceiver(mTopic);
+        mExchange = exchange;
+        mReceiver = mSession.createReceiver(mExchange);
 
         mReceiveCallback = callback;
         mReceivingActive = true;
-        DEBUG_LOG("[ %s ] Starting receiver thread on topic: %s!", __func__, topic.c_str());
+        DEBUG_LOG("[ %s ] Starting receiver thread on exchange: %s!", __func__, exchange.c_str());
         mMessageReceiverThreadFunction = std::thread(&QPIDReceiver::waitForMessages, this);
     } catch (const std::exception& e) {
         WARNING_LOG("[ %s ] Exception: %s!", __func__, e.what());
@@ -68,7 +68,7 @@ QPIDStatus QPIDReceiver::receiveStop() {
             if (mMessageReceiverThreadFunction.joinable())
                 mMessageReceiverThreadFunction.join();
         } else {
-            ret = QPIDStatus::QPID_ALREADY;
+            ret = QPIDStatus::QPID_INVALID_PARAM;
         }
     } catch (const std::exception& e) {
         WARNING_LOG("[ %s ] Exception: %s!", __func__, e.what());

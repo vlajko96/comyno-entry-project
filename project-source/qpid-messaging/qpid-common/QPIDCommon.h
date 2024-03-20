@@ -28,7 +28,6 @@ enum class QPIDStatus {
     QPID_INVALID_PARAM
 };
 
-using qpidSendCallback = std::function<void(std::string, std::string)>;
 using qpidReceiveCallback = std::function<void(std::string, std::string, std::string)>;
 
 }

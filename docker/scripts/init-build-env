@@ -8,8 +8,18 @@ rm -rf hashserve.sock
 echo "127.0.0.1   localhost ${COMYNO_ENV_CONTAINER}" | sudo tee -a /etc/hosts > /dev/null 2>&1
 echo "::1         localhost ${COMYNO_ENV_CONTAINER}" | sudo tee -a /etc/hosts > /dev/null 2>&1
 
+# Set correct timezone for postgres
+sudo sed -i "s|timezone = 'Etc/UTC'|timezone = 'Europe/Belgrade'|" /etc/postgresql/10/main/postgresql.conf
+sudo sed -i "s|log_timezone = 'Etc/UTC'|log_timezone = 'Europe/Belgrade'|" /etc/postgresql/10/main/postgresql.conf
+
 # Start postgresql database
 sudo service postgresql start
 
 # Start qpid broker
 sudo qpidd &
+
+# Create topics and queues
+qpid-config add exchange topic send-topic
+qpid-config add exchange topic reply-topic
+qpid-config add queue send-queue
+qpid-config add queue reply-queue

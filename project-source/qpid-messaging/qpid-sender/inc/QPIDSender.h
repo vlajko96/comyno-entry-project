@@ -6,7 +6,7 @@
 namespace qpidMessaging {
 
 class QPIDSender{
-    QPIDStatus sendMessage(std::string topic, std::string message, std::string replyAddress = "");
+    QPIDStatus sendMessage(std::string exchange, std::string message, std::string replyAddress = "");
     friend class QPIDMessaging;
 
     qpid::messaging::Connection mConnection;
