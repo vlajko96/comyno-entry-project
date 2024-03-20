@@ -4,15 +4,15 @@ namespace qpidMessaging {
 
 std::mutex QPIDReceiver::mMutex;
 
-QPIDReceiver::QPIDReceiver(std::string broker) {
-    mConnection = qpid::messaging::Connection(broker);
+QPIDReceiver::QPIDReceiver(std::string broker, std::shared_ptr<IQPIDBrokerConnector> brokerConnector) : mBrokerConnector{brokerConnector} {
+    mConnection = mBrokerConnector->createConnection(broker);
     mReceivingActive = false;
 }
 
 QPIDReceiver::~QPIDReceiver() {
     if (mReceivingActive) {
         mReceivingActive = false;
-        mConnection.close();
+        mBrokerConnector->closeConnection(mConnection);
     }
     if (mMessageReceiverThreadFunction.joinable())
         mMessageReceiverThreadFunction.join();
@@ -21,17 +21,17 @@ QPIDReceiver::~QPIDReceiver() {
 void QPIDReceiver::waitForMessages() {
     try {
         while (mReceivingActive) { // Loop to keep listening for messages
-            qpid::messaging::Message message = mReceiver.fetch();
+            qpid::messaging::Message message = mBrokerConnector->receiverFetch(mReceiver);
             mMutex.lock();
             DEBUG_LOG("[ %s ] Received message: %s!", __func__, message.getContent().c_str());
             mReceiveCallback(message.getContent(), mExchange, message.getReplyTo().getName());
             mMutex.unlock();
-            mSession.acknowledge();
+            mBrokerConnector->sessionAcknowledge(mSession);
         }
     } catch (const std::exception& e) {
         WARNING_LOG("[ %s ] Exception: %s!", __func__, e.what());
-        if (mConnection.isOpen())
-            mConnection.close();
+        if (mBrokerConnector->connectionIsOpen(mConnection))
+            mBrokerConnector->closeConnection(mConnection);
     }
 }
 
@@ -40,10 +40,10 @@ QPIDStatus QPIDReceiver::receiveMessages(std::string exchange, qpidReceiveCallba
     QPIDStatus ret = QPIDStatus::QPID_SUCCESS;
 
     try {
-        mConnection.open();
-        mSession = mConnection.createSession();
+        mBrokerConnector->openConnection(mConnection);
+        mSession = mBrokerConnector->createSession(mConnection);
         mExchange = exchange;
-        mReceiver = mSession.createReceiver(mExchange);
+        mReceiver = mBrokerConnector->createReceiver(mSession, mExchange);
 
         mReceiveCallback = callback;
         mReceivingActive = true;
@@ -51,7 +51,7 @@ QPIDStatus QPIDReceiver::receiveMessages(std::string exchange, qpidReceiveCallba
         mMessageReceiverThreadFunction = std::thread(&QPIDReceiver::waitForMessages, this);
     } catch (const std::exception& e) {
         WARNING_LOG("[ %s ] Exception: %s!", __func__, e.what());
-        mConnection.close();
+        mBrokerConnector->closeConnection(mConnection);
         ret = QPIDStatus::QPID_ERROR;
     }
 
@@ -64,7 +64,7 @@ QPIDStatus QPIDReceiver::receiveStop() {
     try {
         if (mReceivingActive) {
             mReceivingActive = false;
-            mConnection.close();
+            mBrokerConnector->closeConnection(mConnection);
             if (mMessageReceiverThreadFunction.joinable())
                 mMessageReceiverThreadFunction.join();
         } else {

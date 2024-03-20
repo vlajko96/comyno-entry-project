@@ -6,11 +6,11 @@ static pgClient::PGClient postgresClient{};
 std::unordered_map<std::string, std::string> exchangeReply;
 
 void receiveCallback(std::string message, std::string exchange, std::string replyAddress) {
-	std::cout << "Message received: " << message << " on exchange:" << exchange << " with reply address: " << replyAddress << std::endl;
+    std::cout << "Message received: " << message << " on exchange:" << exchange << " with reply address: " << replyAddress << std::endl;
 }
 
 void receiveAndReplyCallback(std::string message, std::string exchange, std::string replyAddress) {
-	std::cout << "Message received: " << message << " on exchange: " << exchange << " with reply address: " << replyAddress << std::endl;
+    std::cout << "Message received: " << message << " on exchange: " << exchange << " with reply address: " << replyAddress << std::endl;
     if (replyAddress != "") {
         if (message == "Send me an invalid!") {
             std::cout << "Sending invalid message to exchange: " << replyAddress << std::endl;
@@ -25,7 +25,7 @@ void receiveAndReplyCallback(std::string message, std::string exchange, std::str
 }
 
 void receiveAndPersistCallback(std::string message, std::string exchange, std::string replyAddress) {
-	std::cout << "Message received: " << message << " on exchange: " << exchange << " with reply address: " << replyAddress << std::endl;
+    std::cout << "Message received: " << message << " on exchange: " << exchange << " with reply address: " << replyAddress << std::endl;
     if (pgClient::PGStatus::PG_SUCCESS == postgresClient.pgMessagePersist(message, exchange)) {
         std::cout << "Message persisted successfully!";
     } else {

@@ -4,6 +4,7 @@ namespace qpidMessaging {
 
 QPIDMessaging::QPIDMessaging(std::string broker) {
     mBroker = broker;
+    mBrokerConnector = std::make_shared<QPIDBrokerConnector>();
 }
 
 QPIDMessaging::~QPIDMessaging() {
@@ -14,13 +15,13 @@ QPIDMessaging::~QPIDMessaging() {
 }
 
 QPIDStatus QPIDMessaging::qpidSendMessage(std::string message, std::string exchange, std::string replyAddress) {
-    QPIDSender qpidSender(mBroker);
+    QPIDSender qpidSender(mBroker, mBrokerConnector);
     INFO_LOG("[ %s ] Sending message: %s, on exchange: %s, with reply address: %s!", __func__, message.c_str(), exchange.c_str(), replyAddress.c_str());
     return qpidSender.sendMessage(exchange, message, replyAddress);
 }
 
 QPIDStatus QPIDMessaging::qpidSendInvalidMessage(std::string exchange) {
-    QPIDSender qpidSender(mBroker);
+    QPIDSender qpidSender(mBroker, mBrokerConnector);
     INFO_LOG("[ %s ] Sending invalid message on exchange: %s!", __func__, exchange.c_str());
     return qpidSender.sendMessage(exchange, INVALID_MESSAGE);
 }
@@ -33,7 +34,7 @@ QPIDStatus QPIDMessaging::qpidReceiveMessages(std::string exchange, qpidReceiveC
             ret = QPIDStatus::QPID_ALREADY;
         } else {
             INFO_LOG("[ %s ] Starting receiver on exchange: %s!", __func__, exchange.c_str());
-            std::shared_ptr<QPIDReceiver> qpidReceiver = std::make_shared<QPIDReceiver>(mBroker);
+            std::shared_ptr<QPIDReceiver> qpidReceiver = std::make_shared<QPIDReceiver>(mBroker, mBrokerConnector);
             ret = qpidReceiver->receiveMessages(exchange, callback);
             if (ret == QPIDStatus::QPID_SUCCESS) {
                 activeReceivers.emplace(exchange, qpidReceiver);
@@ -57,5 +58,11 @@ QPIDStatus QPIDMessaging::qpidReceiveStop(std::string exchange) {
 
     return ret;
 }
+
+#ifdef GTEST
+    void QPIDMessaging::injectBrokerConnector(std::shared_ptr<IQPIDBrokerConnector> brokerConnector) {
+        mBrokerConnector = brokerConnector;
+    }
+#endif
 
 }

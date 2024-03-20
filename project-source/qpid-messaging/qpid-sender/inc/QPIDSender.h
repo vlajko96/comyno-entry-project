@@ -2,6 +2,7 @@
 #define _QPID_SENDER_H_
 
 #include <QPIDCommon.h>
+#include <IQPIDBrokerConnector.h>
 
 namespace qpidMessaging {
 
@@ -13,9 +14,10 @@ class QPIDSender{
     qpid::messaging::Session mSession;
     qpid::messaging::Sender mSender;
     qpid::messaging::Address mReplyAddress;
+    std::shared_ptr<IQPIDBrokerConnector> mBrokerConnector;
 
  public:
-    QPIDSender(std::string broker);
+    QPIDSender(std::string broker, std::shared_ptr<IQPIDBrokerConnector> brokerConnector);
     virtual ~QPIDSender() = default;
 };
 

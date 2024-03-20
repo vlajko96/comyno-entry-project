@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 #include <PGCommon.h>
+#include <PGConnector.h>
 
 namespace pgClient {
 
@@ -46,11 +47,17 @@ class PGClient {
      */
     PGStatus pgMessageQuery(pgSelectCallback callback, std::string exchange = "");
 
+
+#ifdef GTEST
+    void injectPGConnector(std::shared_ptr<IPGConnector> pgConnector);
+#endif
+
  private:
     std::string mDatabase;
     static std::mutex mMutex;
     pgSelectCallback mSelectCallback;
     ThreadPool mPool;
+    std::shared_ptr<IPGConnector> mPGConnector;
 
     void queryExchange(int exchangeID, pgSelectCallback callback);
 };

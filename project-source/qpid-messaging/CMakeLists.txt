@@ -12,6 +12,7 @@ include_directories(
     qpid-common
     qpid-sender/inc
     qpid-receiver/inc
+    qpid-broker-connector/inc
 )
 
 # File collection from each subdirectory
@@ -19,9 +20,12 @@ file(GLOB_RECURSE SOURCES
     "src/*.cpp"
     "qpid-sender/src/*.cpp"
     "qpid-receiver/src/*.cpp"
+    "qpid-broker-connector/src/*.cpp"
 )
 
 # Create a single library from all sources
 add_library(${LIB_NAME} SHARED ${SOURCES})
 
 target_link_libraries(${LIB_NAME} qpidmessaging)
+
+add_subdirectory(unit-test)

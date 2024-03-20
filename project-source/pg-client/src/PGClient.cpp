@@ -6,6 +6,7 @@ std::mutex PGClient::mMutex;
 
 PGClient::PGClient(std::string database) : mPool(5) {
     mDatabase = database;
+    mPGConnector = std::make_shared<PGConnector>();
 }
 
 PGStatus PGClient::pgMessagePersist(std::string message, std::string exchange) {
@@ -13,28 +14,28 @@ PGStatus PGClient::pgMessagePersist(std::string message, std::string exchange) {
     INFO_LOG("[ %s ] Persisting message: %s, on exchange: %s!", __func__, message.c_str(), exchange.c_str());
 
     try {
-        pqxx::connection conn(mDatabase);
-        pqxx::work txn(conn);
+        std::shared_ptr<pqxx::connection> conn = mPGConnector->openConnection(mDatabase);
+        std::shared_ptr<pqxx::work> txn = mPGConnector->createTransaction(*conn);
 
         // Execute the SQL queries
         if (exchange != "") {
-            std::string query = "SELECT ID FROM Exchanges WHERE exchange_name = " + txn.quote(exchange);
-            pqxx::result r = txn.exec(query);
+            std::string query = "SELECT ID FROM Exchanges WHERE exchange_name = " + mPGConnector->quoteString(*txn, exchange);
+            pqxx::result r = mPGConnector->executeQuery(*txn, query);
 
-            if (r.empty()) {
+            if (mPGConnector->resultIsEmpty(r)) {
                 ERROR_LOG("[ %s ] Invalid exchange: %s!", __func__, exchange.c_str());
                 ret = PGStatus::PG_ERROR;
             } else {
-                auto exchangeID = r[0][0].as<int>();
-                query = "INSERT INTO Messages (payload, exchange_id) VALUES (" + txn.quote(message) + " , " + txn.quote(exchangeID) + ")";
-                pqxx::result r = txn.exec(query);
+                auto exchangeID = mPGConnector->resultGetFirstInt(r);
+                query = "INSERT INTO Messages (payload, exchange_id) VALUES (" + mPGConnector->quoteString(*txn, message) + " , " + std::to_string(exchangeID) + ")";
+                pqxx::result r = mPGConnector->executeQuery(*txn, query);
             }
         } else {
-            std::string query = "INSERT INTO Messages (payload) VALUES (" + txn.quote(message) + ")";
-            pqxx::result r = txn.exec(query);
+            std::string query = "INSERT INTO Messages (payload) VALUES (" + mPGConnector->quoteString(*txn, message) + ")";
+            pqxx::result r = mPGConnector->executeQuery(*txn, query);
         }
 
-        txn.commit();
+        mPGConnector->commitTransaction(*txn);
     } catch (const std::exception &e) {
         WARNING_LOG("[ %s ] Exception: %s!", __func__, e.what());
         ret = PGStatus::PG_ERROR;
@@ -45,31 +46,25 @@ PGStatus PGClient::pgMessagePersist(std::string message, std::string exchange) {
 
 void PGClient::queryExchange(int exchangeID, pgSelectCallback callback) {
     try {
-        pqxx::connection conn(mDatabase);
-        pqxx::work txn(conn);
+        std::shared_ptr<pqxx::connection> conn = mPGConnector->openConnection(mDatabase);
+        std::shared_ptr<pqxx::work> txn = mPGConnector->createTransaction(*conn);
 
         // Set the transaction isolation level
-        conn.prepare("set_iso_level", "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE");
-        txn.exec_prepared("set_iso_level");
+        mPGConnector->prepareStatement(*conn, "set_iso_level", "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+        mPGConnector->executePrepared(*txn, "set_iso_level");
 
         std::string query = "";
 
         // Execute the SQL queries
         if (exchangeID != -1) {
-            query = "SELECT ID, payload, created_at FROM Messages WHERE exchange_id = " + txn.quote(exchangeID);
+            query = "SELECT ID, payload, created_at FROM Messages WHERE exchange_id = " + std::to_string(exchangeID);
         } else {
             query = "SELECT ID, payload, created_at FROM Messages";
         }
-        pqxx::result r = txn.exec(query);
+        pqxx::result r = mPGConnector->executeQuery(*txn, query);
 
-        std::vector<Message> messageArray;
-        for (const auto& row : r) {
-            int messageID = row[0].as<int>();
-            std::string payload = row[1].as<std::string>();
-            std::string timestamp = row[2].as<std::string>();
-            messageArray.emplace_back(Message{messageID, payload, timestamp});
-            DEBUG_LOG("[ %s ] Read message with ID: %d, payload: %s, timestamp: %s!", __func__, messageID, payload.c_str(), timestamp.c_str());
-        }
+        std::vector<Message> messageArray = mPGConnector->resultGetAll(r);
+
         mMutex.lock();
         callback(messageArray);
         mMutex.unlock();
@@ -83,19 +78,19 @@ PGStatus PGClient::pgMessageQuery(pgSelectCallback callback, std::string exchang
     INFO_LOG("[ %s ] Querying messages on exchange: %s!", __func__, exchange.c_str());
 
     try {
-        pqxx::connection conn(mDatabase);
-        pqxx::work txn(conn);
+        std::shared_ptr<pqxx::connection> conn = mPGConnector->openConnection(mDatabase);
+        std::shared_ptr<pqxx::work> txn = mPGConnector->createTransaction(*conn);
 
         // Execute the SQL queries
         if (exchange != "") {
-            std::string query = "SELECT ID FROM Exchanges WHERE exchange_name = " + txn.quote(exchange);
-            pqxx::result r = txn.exec(query);
+            std::string query = "SELECT ID FROM Exchanges WHERE exchange_name = " + mPGConnector->quoteString(*txn, exchange);
+            pqxx::result r = mPGConnector->executeQuery(*txn, query);
 
-            if (r.empty()) {
+            if (mPGConnector->resultIsEmpty(r)) {
                 ERROR_LOG("[ %s ] Invalid exchange: %s!", __func__, exchange.c_str());
                 ret = PGStatus::PG_ERROR;
             } else {
-                auto exchangeID = r[0][0].as<int>();
+                auto exchangeID = mPGConnector->resultGetFirstInt(r);
                 mPool.enqueue(std::bind(&PGClient::queryExchange, this, exchangeID, callback));
             }
         } else {
@@ -108,5 +103,11 @@ PGStatus PGClient::pgMessageQuery(pgSelectCallback callback, std::string exchang
 
     return ret;
 }
+
+#ifdef GTEST
+    void PGClient::injectPGConnector(std::shared_ptr<IPGConnector> pgConnector) {
+        mPGConnector = pgConnector;
+    }
+#endif
 
 }

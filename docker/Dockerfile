@@ -18,7 +18,6 @@ RUN apt-get update && \
     gcc-4.8 \
     g++-4.8 \
     libncurses5-dev \
-    libgtest-dev \
     lcov \
     gcovr \
     wget \   
@@ -39,8 +38,8 @@ RUN apt-get update && \
 
 # Using bash
 ENV SHELL=/bin/bash LANG=en_US.UTF-8
-RUN /usr/sbin/locale-gen en_US.UTF-8                           &&   \
-    echo 'dash dash/sh boolean false' | debconf-set-selections &&   \
+RUN /usr/sbin/locale-gen en_US.UTF-8 && \
+    echo 'dash dash/sh boolean false' | debconf-set-selections && \
     dpkg-reconfigure dash
 
 # Create defalt user used with default uid and gid
@@ -58,11 +57,21 @@ RUN echo "comyno ALL=(ALL:ALL) ALL" > /etc/sudoers
 
 COPY /scripts $COMYNO_ENV_IMAGE_SCRIPTS_PATH
 
-# Install of the cmake version 3.24.0
+# Install cmake version 3.24.0
 ARG CMAKE_VERSION=3.24.0
 RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.sh -O cmake.sh; \
     sh cmake.sh --prefix=/usr/local/ --exclude-subdir; \
     rm -rf cmake.sh;
+
+# Install googletest
+RUN git clone https://github.com/google/googletest.git && \
+    mkdir googletest/build && \
+    cd googletest/build && \
+    cmake -DBUILD_SHARED_LIBS=ON .. && \
+    make && \
+    make install && \
+    cd / && \
+    rm -rf googletest
 
 # Expose the port for Postgresql
 EXPOSE 5432
@@ -80,7 +89,7 @@ RUN /etc/init.d/postgresql start && \
 
 USER root
 
-# Install of qpid
+# Install qpid
 RUN pip install qpid-python
 RUN wget https://dlcdn.apache.org/qpid/cpp/1.39.0/qpid-cpp-1.39.0.tar.gz
 RUN tar xvzf qpid-cpp-1.39.0.tar.gz
@@ -96,22 +105,19 @@ RUN cd qpid-cpp-1.39.0 && \
 # Expose the port for Qpid broker
 EXPOSE 5672
 
-# Install GCC-9 and G++-9
-RUN apt-get install -y software-properties-common
-RUN add-apt-repository ppa:ubuntu-toolchain-r/test
-RUN apt-get update && \
-    apt-get install -y \
-    gcc-9 \
-    g++-9
+# Install GCC-7 and G++-7
+RUN apt-get install -y \
+    gcc \
+    g++
 
-# Set GCC-9 and G++-9 as the default compilers
+# Set GCC-7 and G++-7 as the default compilers
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 50 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50 && \
-    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 100 && \
-    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 100
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 100 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 100
 
 # Build and install libpqxx
-RUN git clone https://github.com/jtv/libpqxx.git
+RUN git clone -b 7.3 --single-branch https://github.com/jtv/libpqxx.git
 
 RUN cd libpqxx && \
     mkdir bld && \

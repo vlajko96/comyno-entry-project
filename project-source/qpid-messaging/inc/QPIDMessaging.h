@@ -4,6 +4,7 @@
 #include <QPIDCommon.h>
 #include <QPIDReceiver.h>
 #include <QPIDSender.h>
+#include <QPIDBrokerConnector.h>
 
 namespace qpidMessaging {
 
@@ -72,9 +73,15 @@ class QPIDMessaging {
     */
     QPIDStatus qpidReceiveStop(std::string exchange);
 
+
+#ifdef GTEST
+    void injectBrokerConnector(std::shared_ptr<IQPIDBrokerConnector> brokerConnector);
+#endif
+
  private:
     std::string mBroker;
     std::unordered_map<std::string, std::shared_ptr<QPIDReceiver>> activeReceivers;
+    std::shared_ptr<IQPIDBrokerConnector> mBrokerConnector;
 };
 
 }
