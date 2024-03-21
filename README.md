@@ -11,6 +11,7 @@
 7. `make start p=<absolute_path_to_project>/project-source`
 
 Note: After you start the container, postgresql database and qpid broker will be started automatically
+Note: If you need, you can have multiple shells attached to container, after you start container just use `make attach`
 
 ### Database
 
@@ -32,12 +33,9 @@ CREATE TABLE Messages (
 );
 ```
 
-### QPID broker
+### Broker
 
 2 queues and 2 topics will be added ("send-queue", "reply-queue", "send-topic", "reply-topic") to qpid broker so we can use them for testing (more can be added using qpid-config command). Also, these queues and topics will be added to "Exchanges" table in database.
-
-Note: If you need, you can have multiple shells attached to container, after you start container just use make attach
-Folder structure of project-source
 
     cmake: compiler settings
     log: custom logger
@@ -45,7 +43,7 @@ Folder structure of project-source
     qpid-messaging: qpid client library and unit tests
     test: interactive tests
 
-We have our commands.sh script which has following targets:
+We have commands.sh script which has following targets:
 
     ./commands.sh build - builds postgres and qpid client libraries (libqpidmessagingcomyno.so and libpgclientcomyno.so) and puts them in ./output/lib folder, builds unit tests (test-qpid and test-pgclient) and puts them in ./output/bin folder, builds interactive test (test-cm) and puts him in ./output/bin folder
     ./commands.sh clean - cleans build and output folders
