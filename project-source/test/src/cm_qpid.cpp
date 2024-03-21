@@ -17,7 +17,7 @@ void receiveAndReplyCallback(std::string message, std::string exchange, std::str
             qpidMessagingClient.qpidSendMessage(INVALID_MESSAGE, replyAddress);
         } else {
             std::cout << "Replying with message: " << exchangeReply[exchange] << " on exchange: " << replyAddress << std::endl;
-            qpidMessagingClient.qpidSendMessage(message, replyAddress);
+            qpidMessagingClient.qpidSendMessage(exchangeReply[exchange], replyAddress);
         }
     } else {
         std::cout << "Reply address empty!" << std::endl;
