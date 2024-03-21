@@ -11,6 +11,7 @@
 7. `make start p=<absolute_path_to_project>/project-source`
 
 Note: After you start the container, postgresql database and qpid broker will be started automatically
+
 Note: If you need, you can have multiple shells attached to container, after you start container just use `make attach`
 
 ### Database
